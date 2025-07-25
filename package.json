@@ -1,0 +1,23 @@
+{
+  "name": "telegram-placement-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for placement/job tracking with Firebase and cron reminders",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": ["telegram", "bot", "firebase", "cron", "placement"],
+  "author": "Ravi Ranjan",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "dayjs": "^1.11.13",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "firebase-admin": "^13.4.0",
+    "node-cron": "^4.2.1",
+    "node-telegram-bot-api": "^0.66.0"
+  }
+}
+
