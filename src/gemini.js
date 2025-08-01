@@ -1,4 +1,3 @@
-// src/gemini.js
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
 dotenv.config();
@@ -6,7 +5,6 @@ dotenv.config();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-// Define the exact JSON structure we want the model to follow
 const jobInfoSchema = {
     type: "OBJECT",
     properties: {
@@ -19,7 +17,7 @@ const jobInfoSchema = {
         eligible_degrees: { type: "ARRAY", items: { type: "STRING" } },
         eligible_branches: { type: "ARRAY", items: { type: "STRING" } },
         cgpa_criteria: { type: "STRING" },
-        // This is the key change: we ask for a specific, easy-to-parse format
+
         deadline: {
             type: "STRING",
             description:
@@ -30,11 +28,10 @@ const jobInfoSchema = {
         query_group_link: { type: "STRING" },
         job_description: { type: "STRING" },
     },
-    // Ensure company and deadline are always present
+
     required: ["company", "deadline"],
 };
 
-// Configure the model to use our schema and output JSON
 const model = genAI.getGenerativeModel({
     model: "gemini-2.0-flash",
     generationConfig: {

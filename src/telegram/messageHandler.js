@@ -1,32 +1,24 @@
-// src/telegram/messageHandler.js
 import { dayjs, TIMEZONE } from "../config.js";
 import { extractJobInfo } from "../gemini.js";
 import { buildTelegramMessage } from "./messageBuilder.js";
 
-// Now accepts the state map as an argument
 export function initializeMessageHandler(bot, db, awaitingJobInfo) {
     bot.on("message", async (msg) => {
         const chatId = msg.chat.id;
         const userMessage = msg.text;
 
-        // Ignore commands completely in this handler
         if (!userMessage || userMessage.startsWith("/")) {
             return;
         }
 
-        // Check if this chat is waiting for job info
         if (awaitingJobInfo.has(chatId)) {
-            // We got the message we were waiting for.
-            // First, clear the state to prevent reprocessing.
             awaitingJobInfo.delete(chatId);
 
-            // Check if the user wants to cancel
             if (userMessage.toLowerCase() === "exit") {
                 bot.sendMessage(chatId, "Process ended.");
                 return;
             }
 
-            // Now, process the message as the job description.
             bot.sendMessage(chatId, "🧠 Got it! Extracting job info, please wait...");
             try {
                 const jobInfo = await extractJobInfo(userMessage);
@@ -38,7 +30,6 @@ export function initializeMessageHandler(bot, db, awaitingJobInfo) {
                     return;
                 }
 
-                // --- DUPLICATE CHECK ---
                 const duplicateQuery = await db
                     .collection("jobs")
                     .where("company", "==", jobInfo.company)
@@ -89,6 +80,5 @@ export function initializeMessageHandler(bot, db, awaitingJobInfo) {
                 );
             }
         }
-        // If the chat is NOT in the awaiting state, do nothing. This ignores general chat.
     });
 }

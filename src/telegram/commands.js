@@ -1,26 +1,18 @@
-// src/telegram/commands.js
-
-// Helper function to escape markdown characters
 function escapeMarkdown(text) {
     if (typeof text !== "string") return "";
     return text.replace(/([\\_\*\[\]()~`>#+\-=|{}.!])/g, "\\$&");
 }
 
-// Now accepts the state map as an argument
 export function initializeCommands(bot, db, awaitingJobInfo) {
-    // --- NEW: /add command now starts a conversation ---
     bot.onText(/\/add/, (msg) => {
         const chatId = msg.chat.id;
-        // Prompt the user for the job info
         bot.sendMessage(
             chatId,
             "Please paste the full job description now, or type `exit` to cancel.",
         );
-        // Set the state for this chat, indicating we're waiting for the next message.
         awaitingJobInfo.set(chatId, true);
     });
 
-    // --- Other commands remain the same ---
     bot.onText(/\/active/, async (msg) => {
         const chatId = msg.chat.id;
         const snapshot = await db
@@ -35,8 +27,17 @@ export function initializeCommands(bot, db, awaitingJobInfo) {
 
         let response = `*Total Active Applications: ${snapshot.size}*\n\n`;
         let count = 1;
-        snapshot.forEach((doc) => {
-            response += `${count}\\. ${escapeMarkdown(doc.data().company)}\n`;
+        const sortedJobs = snapshot.docs.sort((a, b) => {
+            return (
+                a.data().deadline_timestamp.toMillis() -
+                b.data().deadline_timestamp.toMillis()
+            );
+        });
+
+        sortedJobs.forEach((doc) => {
+            const job = doc.data();
+
+            response += `${count}\\. ${escapeMarkdown(job.company)} \\- _${escapeMarkdown(job.deadline)}_\n`;
             count++;
         });
 
@@ -68,8 +69,19 @@ export function initializeCommands(bot, db, awaitingJobInfo) {
     bot.onText(/\/total/, async (msg) => {
         const chatId = msg.chat.id;
         const snapshot = await db.collection("jobs").get();
-        bot.sendMessage(chatId, `*Total Jobs Tracked: ${snapshot.size}*`, {
-            parse_mode: "MarkdownV2",
+
+        if (snapshot.empty) {
+            bot.sendMessage(chatId, "No jobs have been tracked yet.");
+            return;
+        }
+
+        let response = `*Total Jobs Tracked: ${snapshot.size}*\n\n`;
+        let count = 1;
+        snapshot.forEach((doc) => {
+            response += `${count}\\. ${escapeMarkdown(doc.data().company)}\n`;
+            count++;
         });
+
+        bot.sendMessage(chatId, response, { parse_mode: "MarkdownV2" });
     });
 }

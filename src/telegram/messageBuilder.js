@@ -1,20 +1,8 @@
-// src/telegram/messageBuilder.js
-
-/**
- * Escapes characters that have special meaning in Telegram's MarkdownV2.
- * @param {string} text The text to escape.
- * @returns {string} The escaped text.
- */
 function escapeMarkdown(text) {
     if (typeof text !== "string") return "";
     return text.replace(/([\\_\*\[\]()~`>#+\-=|{}.!])/g, "\\$&");
 }
 
-/**
- * Builds the main job details message, hiding any fields that are null or empty.
- * @param {object} jobInfo The job information object.
- * @returns {string} The formatted message body.
- */
 export function buildTelegramMessage(jobInfo) {
     const lines = [];
     const addLine = (label, value) => {
@@ -65,11 +53,6 @@ export function buildTelegramMessage(jobInfo) {
     return lines.join("\n");
 }
 
-/**
- * Formats remaining time in minutes into a human-readable "Xh Ym" string.
- * @param {number} minutes The total minutes remaining.
- * @returns {string} The formatted time string.
- */
 export function formatRemainingTime(minutes) {
     if (minutes <= 0) return "0m";
     const hours = Math.floor(minutes / 60);
