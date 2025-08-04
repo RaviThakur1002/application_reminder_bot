@@ -9,6 +9,7 @@ export default function runBot() {
     const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
     const awaitingJobInfo = new Map();
+
     const awaitingPlacedInfo = new Map();
 
     bot.setMyCommands([

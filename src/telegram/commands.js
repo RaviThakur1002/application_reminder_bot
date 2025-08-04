@@ -78,6 +78,7 @@ export function initializeCommands(
             chatId,
             "Please paste the placed students message now, or type `exit` to cancel.",
         );
+
         awaitingPlacedInfo.set(chatId, true);
     });
 
