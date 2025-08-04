@@ -1,8 +1,13 @@
 import { dayjs, TIMEZONE } from "../config.js";
-import { extractJobInfo } from "../gemini.js";
+import { extractJobInfo, extractPlacedInfo } from "../gemini.js";
 import { buildTelegramMessage } from "./messageBuilder.js";
 
-export function initializeMessageHandler(bot, db, awaitingJobInfo) {
+export function initializeMessageHandler(
+    bot,
+    db,
+    awaitingJobInfo,
+    awaitingPlacedInfo,
+) {
     bot.on("message", async (msg) => {
         const chatId = msg.chat.id;
         const userMessage = msg.text;
@@ -25,11 +30,10 @@ export function initializeMessageHandler(bot, db, awaitingJobInfo) {
                 if (!jobInfo || !jobInfo.deadline) {
                     await bot.sendMessage(
                         chatId,
-                        "⚠️ Couldn't extract a valid deadline from that message. Please try the /add command again.",
+                        "⚠️ Couldn't extract a valid deadline. Please try again.",
                     );
                     return;
                 }
-
                 const duplicateQuery = await db
                     .collection("jobs")
                     .where("company", "==", jobInfo.company)
@@ -37,47 +41,81 @@ export function initializeMessageHandler(bot, db, awaitingJobInfo) {
                     .where("deadline", "==", jobInfo.deadline)
                     .limit(1)
                     .get();
-
                 if (!duplicateQuery.empty) {
                     await bot.sendMessage(
                         chatId,
-                        "⚠️ This job seems to be a duplicate of an existing entry and was not added.",
+                        "⚠️ This job seems to be a duplicate and was not added.",
                     );
                     return;
                 }
-
-                const deadlineFormat = "DD/MM/YYYY HH:mm A";
-                const deadline = dayjs.tz(jobInfo.deadline, deadlineFormat, TIMEZONE);
-
+                const deadline = dayjs.tz(
+                    jobInfo.deadline,
+                    "DD/MM/YYYY HH:mm A",
+                    TIMEZONE,
+                );
                 if (!deadline.isValid()) {
                     await bot.sendMessage(
                         chatId,
-                        `❌ Error: The AI returned an unreadable date: "${jobInfo.deadline}". Please try again.`,
+                        `❌ AI returned an unreadable date: "${jobInfo.deadline}".`,
                     );
                     return;
                 }
-
                 const initialMessage = `📢 *New Job Opportunity\\!*\n\n${buildTelegramMessage(jobInfo)}`;
                 await bot.sendMessage(chatId, initialMessage, {
                     parse_mode: "MarkdownV2",
                     disable_web_page_preview: true,
                 });
-
                 await db.collection("jobs").add({
                     ...jobInfo,
                     chat_id: chatId,
                     deadline_timestamp: deadline.toDate(),
                     closed: false,
                 });
-                console.log(
-                    `✅ Job added for "${jobInfo.company}" with deadline: ${deadline.format()}`,
-                );
+                console.log(`✅ Job added for "${jobInfo.company}"`);
             } catch (err) {
-                console.error("Bot 'message' event error:", err);
-                await bot.sendMessage(
+                console.error("Bot 'message' event (job) error:", err);
+                await bot.sendMessage(chatId, "❌ A critical error occurred.");
+            }
+        } else if (awaitingPlacedInfo.has(chatId)) {
+            awaitingPlacedInfo.delete(chatId);
+
+            if (userMessage.toLowerCase() === "exit") {
+                bot.sendMessage(chatId, "Process ended.");
+                return;
+            }
+
+            bot.sendMessage(
+                chatId,
+                "🧠 Got it! Extracting placed student info, please wait...",
+            );
+            try {
+                const placedInfo = await extractPlacedInfo(userMessage);
+                if (
+                    !placedInfo ||
+                    !placedInfo.company ||
+                    placedInfo.student_names.length === 0
+                ) {
+                    await bot.sendMessage(
+                        chatId,
+                        "⚠️ Couldn't extract company or student names. Please try the /add_placed command again.",
+                    );
+                    return;
+                }
+
+                await db.collection("placed").add({
+                    company: placedInfo.company,
+                    student_names: placedInfo.student_names,
+                    added_at: dayjs().toISOString(),
+                });
+
+                bot.sendMessage(
                     chatId,
-                    "❌ A critical error occurred while processing your message.",
+                    `✅ Successfully added ${placedInfo.student_names.length} placed student(s) for ${placedInfo.company}.`,
                 );
+                console.log(`✅ Placed students added for "${placedInfo.company}"`);
+            } catch (err) {
+                console.error("Bot 'message' event (placed) error:", err);
+                await bot.sendMessage(chatId, "❌ A critical error occurred.");
             }
         }
     });

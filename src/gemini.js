@@ -17,22 +17,34 @@ const jobInfoSchema = {
         eligible_degrees: { type: "ARRAY", items: { type: "STRING" } },
         eligible_branches: { type: "ARRAY", items: { type: "STRING" } },
         cgpa_criteria: { type: "STRING" },
-
         deadline: {
             type: "STRING",
-            description:
-                "The application deadline. IMPORTANT: Format this as 'DD/MM/YYYY HH:mm A'. Example: '25/07/2025 11:59 PM'.",
+            description: "Format as 'DD/MM/YYYY HH:mm A'. Ex: '25/07/2025 11:59 PM'.",
         },
+        application_link: { type: "STRING" },
         google_form_link: { type: "STRING" },
         announcement_group_link: { type: "STRING" },
         query_group_link: { type: "STRING" },
         job_description: { type: "STRING" },
     },
-
     required: ["company", "deadline"],
 };
 
-const model = genAI.getGenerativeModel({
+const placedInfoSchema = {
+    type: "OBJECT",
+    properties: {
+        company: { type: "STRING", description: "The name of the company." },
+        student_names: {
+            type: "ARRAY",
+            description:
+                "An array of student names. IMPORTANT: Exclude any roll numbers or other details, just the names.",
+            items: { type: "STRING" },
+        },
+    },
+    required: ["company", "student_names"],
+};
+
+const jobModel = genAI.getGenerativeModel({
     model: "gemini-2.0-flash",
     generationConfig: {
         temperature: 0.2,
@@ -41,22 +53,35 @@ const model = genAI.getGenerativeModel({
     },
 });
 
+const placedModel = genAI.getGenerativeModel({
+    model: "gemini-2.0-flash",
+    generationConfig: {
+        temperature: 0.2,
+        responseMimeType: "application/json",
+        responseSchema: placedInfoSchema,
+    },
+});
+
 export async function extractJobInfo(message) {
-    const prompt = `
-Task: Extract structured job information from the provided placement message according to the JSON schema.
-- The current date is ${new Date().toDateString()}. Use this for relative dates like "tomorrow".
-- If any information is not present in the message, its value should be null.
-
-Message:
-"""${message}"""
-`;
-
+    const prompt = `Task: Extract structured job information from the message below. The current date is ${new Date().toDateString()}. If info is not present, use null.\n\nMessage:\n"""${message}"""`;
     try {
-        const result = await model.generateContent(prompt);
+        const result = await jobModel.generateContent(prompt);
         const response = result.response;
-        const jsonObject = JSON.parse(response.text());
-        return jsonObject;
+        return JSON.parse(response.text());
     } catch (err) {
+        console.error("❌ Failed to extract job info:", err);
+        return null;
+    }
+}
+
+export async function extractPlacedInfo(message) {
+    const prompt = `Task: From the message below, extract the company name and a list of student names. Ignore roll numbers and any other text.\n\nMessage:\n"""${message}"""`;
+    try {
+        const result = await placedModel.generateContent(prompt);
+        const response = result.response;
+        return JSON.parse(response.text());
+    } catch (err) {
+        console.error("❌ Failed to extract placed info:", err);
         return null;
     }
 }
