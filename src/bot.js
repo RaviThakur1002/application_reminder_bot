@@ -9,7 +9,6 @@ export default function runBot() {
     const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
     const awaitingJobInfo = new Map();
-
     const awaitingPlacedInfo = new Map();
 
     bot.setMyCommands([
@@ -17,13 +16,13 @@ export default function runBot() {
         { command: "active", description: "Show all active job applications" },
         { command: "closed", description: "Show all closed job applications" },
         { command: "total", description: "Show the total number of jobs tracked" },
-        { command: "add_placed", description: "Add a list of placed students" },
+        { command: "placed_add", description: "Add a list of placed students" },
         {
-            command: "total_placed",
+            command: "placed_total",
             description: "Show the total count of placed students",
         },
         {
-            command: "total_placed_name",
+            command: "placed_names",
             description: "List all placed students by company",
         },
     ]);
@@ -37,6 +36,6 @@ export default function runBot() {
     });
 
     console.log(
-        `🤖 Bot is running with placed student tracking in the ${TIMEZONE} timezone.`,
+        `🤖 Bot is running with new command names in the ${TIMEZONE} timezone.`,
     );
 }

@@ -34,9 +34,12 @@ export function initializeCommands(
                 a.data().deadline_timestamp.toMillis() -
                 b.data().deadline_timestamp.toMillis(),
         );
-        sortedJobs.forEach((doc, index) => {
+
+        let count = 1;
+        sortedJobs.forEach((doc) => {
             const job = doc.data();
-            response += `${index + 1}\\. ${escapeMarkdown(job.company)} \\- _${escapeMarkdown(job.deadline)}_\n`;
+            response += `${count}\\. ${escapeMarkdown(job.company)} \\- _${escapeMarkdown(job.deadline)}_\n`;
+            count++;
         });
         bot.sendMessage(chatId, response, { parse_mode: "MarkdownV2" });
     });
@@ -52,8 +55,11 @@ export function initializeCommands(
             return;
         }
         let response = `*Total Closed Applications: ${snapshot.size}*\n\n`;
-        snapshot.forEach((doc, index) => {
-            response += `${index + 1}\\. ${escapeMarkdown(doc.data().company)}\n`;
+
+        let count = 1;
+        snapshot.forEach((doc) => {
+            response += `${count}\\. ${escapeMarkdown(doc.data().company)}\n`;
+            count++;
         });
         bot.sendMessage(chatId, response, { parse_mode: "MarkdownV2" });
     });
@@ -66,23 +72,25 @@ export function initializeCommands(
             return;
         }
         let response = `*Total Jobs Tracked: ${snapshot.size}*\n\n`;
-        snapshot.forEach((doc, index) => {
-            response += `${index + 1}\\. ${escapeMarkdown(doc.data().company)}\n`;
+
+        let count = 1;
+        snapshot.forEach((doc) => {
+            response += `${count}\\. ${escapeMarkdown(doc.data().company)}\n`;
+            count++;
         });
         bot.sendMessage(chatId, response, { parse_mode: "MarkdownV2" });
     });
 
-    bot.onText(/\/add_placed/, (msg) => {
+    bot.onText(/\/placed_add/, (msg) => {
         const chatId = msg.chat.id;
         bot.sendMessage(
             chatId,
             "Please paste the placed students message now, or type `exit` to cancel.",
         );
-
         awaitingPlacedInfo.set(chatId, true);
     });
 
-    bot.onText(/\/total_placed/, async (msg) => {
+    bot.onText(/\/placed_total/, async (msg) => {
         const chatId = msg.chat.id;
         const snapshot = await db.collection("placed").get();
         if (snapshot.empty) {
@@ -98,7 +106,7 @@ export function initializeCommands(
         });
     });
 
-    bot.onText(/\/total_placed_name/, async (msg) => {
+    bot.onText(/\/placed_names/, async (msg) => {
         const chatId = msg.chat.id;
         const snapshot = await db.collection("placed").get();
         if (snapshot.empty) {

@@ -1,10 +1,7 @@
-// src/telegram/messageHandler.js
 import { dayjs, TIMEZONE } from "../config.js";
-// Import both AI functions
 import { extractJobInfo, extractPlacedInfo } from "../gemini.js";
 import { buildTelegramMessage } from "./messageBuilder.js";
 
-// Now accepts both state maps as arguments
 export function initializeMessageHandler(
     bot,
     db,
@@ -19,7 +16,6 @@ export function initializeMessageHandler(
             return;
         }
 
-        // --- Handle waiting for a JOB description ---
         if (awaitingJobInfo.has(chatId)) {
             awaitingJobInfo.delete(chatId);
 
@@ -69,23 +65,18 @@ export function initializeMessageHandler(
                     parse_mode: "MarkdownV2",
                     disable_web_page_preview: true,
                 });
-                await db
-                    .collection("jobs")
-                    .add({
-                        ...jobInfo,
-                        chat_id: chatId,
-                        deadline_timestamp: deadline.toDate(),
-                        closed: false,
-                    });
+                await db.collection("jobs").add({
+                    ...jobInfo,
+                    chat_id: chatId,
+                    deadline_timestamp: deadline.toDate(),
+                    closed: false,
+                });
                 console.log(`✅ Job added for "${jobInfo.company}"`);
             } catch (err) {
                 console.error("Bot 'message' event (job) error:", err);
                 await bot.sendMessage(chatId, "❌ A critical error occurred.");
             }
-        }
-
-        // --- Handle waiting for PLACED STUDENT info ---
-        else if (awaitingPlacedInfo.has(chatId)) {
+        } else if (awaitingPlacedInfo.has(chatId)) {
             awaitingPlacedInfo.delete(chatId);
 
             if (userMessage.toLowerCase() === "exit") {
@@ -106,12 +97,11 @@ export function initializeMessageHandler(
                 ) {
                     await bot.sendMessage(
                         chatId,
-                        "⚠️ Couldn't extract company or student names. Please try the /add_placed command again.",
+                        "⚠️ Couldn't extract company or student names. Please try the /placed_add command again.",
                     );
                     return;
                 }
 
-                // Save to the new 'placed' collection
                 await db.collection("placed").add({
                     company: placedInfo.company,
                     student_names: placedInfo.student_names,
