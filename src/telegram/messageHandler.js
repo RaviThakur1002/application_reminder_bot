@@ -102,17 +102,47 @@ export function initializeMessageHandler(
                     return;
                 }
 
-                await db.collection("placed").add({
-                    company: placedInfo.company,
-                    student_names: placedInfo.student_names,
-                    added_at: dayjs().toISOString(),
-                });
+                const companyQuery = await db
+                    .collection("placed")
+                    .where("company", "==", placedInfo.company)
+                    .limit(1)
+                    .get();
 
-                bot.sendMessage(
-                    chatId,
-                    `✅ Successfully added ${placedInfo.student_names.length} placed student(s) for ${placedInfo.company}.`,
-                );
-                console.log(`✅ Placed students added for "${placedInfo.company}"`);
+                if (companyQuery.empty) {
+                    await db.collection("placed").add({
+                        company: placedInfo.company,
+                        student_names: placedInfo.student_names,
+                        added_at: dayjs().toISOString(),
+                    });
+                    bot.sendMessage(
+                        chatId,
+                        `✅ Successfully created a new entry and added ${placedInfo.student_names.length} student(s) for ${placedInfo.company}.`,
+                    );
+                } else {
+                    const doc = companyQuery.docs[0];
+                    const existingNames = doc.data().student_names || [];
+                    const existingNamesSet = new Set(existingNames);
+
+                    const newUniqueNames = placedInfo.student_names.filter(
+                        (name) => !existingNamesSet.has(name),
+                    );
+
+                    if (newUniqueNames.length > 0) {
+                        await doc.ref.update({
+                            student_names: [...existingNames, ...newUniqueNames],
+                        });
+                        bot.sendMessage(
+                            chatId,
+                            `✅ Updated entry for ${placedInfo.company}, adding ${newUniqueNames.length} new student(s).`,
+                        );
+                    } else {
+                        bot.sendMessage(
+                            chatId,
+                            `✅ All students for ${placedInfo.company} were already in the list. No new names were added.`,
+                        );
+                    }
+                }
+                console.log(`✅ Placed students processed for "${placedInfo.company}"`);
             } catch (err) {
                 console.error("Bot 'message' event (placed) error:", err);
                 await bot.sendMessage(chatId, "❌ A critical error occurred.");
