@@ -19,11 +19,11 @@ export default function runBot() {
         { command: "placed_add", description: "Add a list of placed students" },
         {
             command: "placed_total",
-            description: "Show the total count of placed students",
+            description: "Show the count of total placed students",
         },
         {
-            command: "placed_names",
-            description: "List all placed students by company",
+            command: "placed_details",
+            description: "Show placed students by company",
         },
     ]);
 

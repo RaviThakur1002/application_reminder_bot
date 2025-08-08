@@ -34,6 +34,16 @@ const placedInfoSchema = {
     type: "OBJECT",
     properties: {
         company: { type: "STRING", description: "The name of the company." },
+        role: {
+            type: "STRING",
+            description:
+                "The role the students were placed in (e.g., PPO Conversion, SDE Intern).",
+        },
+        ctc: { type: "STRING", description: "The CTC offered, if mentioned." },
+        stipend: {
+            type: "STRING",
+            description: "The stipend offered, if mentioned.",
+        },
         student_names: {
             type: "ARRAY",
             description:
@@ -75,7 +85,7 @@ export async function extractJobInfo(message) {
 }
 
 export async function extractPlacedInfo(message) {
-    const prompt = `Task: From the message below, extract the company name and a list of student names. Ignore roll numbers and any other text.\n\nMessage:\n"""${message}"""`;
+    const prompt = `Task: From the message below, extract the company name, the role, any CTC or stipend info, and a list of student names. Ignore roll numbers and any other text.\n\nMessage:\n"""${message}"""`;
     try {
         const result = await placedModel.generateContent(prompt);
         const response = result.response;

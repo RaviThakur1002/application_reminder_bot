@@ -93,6 +93,7 @@ export function initializeMessageHandler(
                 if (
                     !placedInfo ||
                     !placedInfo.company ||
+                    !placedInfo.student_names ||
                     placedInfo.student_names.length === 0
                 ) {
                     await bot.sendMessage(
@@ -111,6 +112,9 @@ export function initializeMessageHandler(
                 if (companyQuery.empty) {
                     await db.collection("placed").add({
                         company: placedInfo.company,
+                        role: placedInfo.role || null,
+                        ctc: placedInfo.ctc || null,
+                        stipend: placedInfo.stipend || null,
                         student_names: placedInfo.student_names,
                         added_at: dayjs().toISOString(),
                     });
@@ -120,17 +124,21 @@ export function initializeMessageHandler(
                     );
                 } else {
                     const doc = companyQuery.docs[0];
-                    const existingNames = doc.data().student_names || [];
-                    const existingNamesSet = new Set(existingNames);
-
+                    const existingData = doc.data();
+                    const existingNamesSet = new Set(existingData.student_names || []);
                     const newUniqueNames = placedInfo.student_names.filter(
                         (name) => !existingNamesSet.has(name),
                     );
 
                     if (newUniqueNames.length > 0) {
-                        await doc.ref.update({
-                            student_names: [...existingNames, ...newUniqueNames],
-                        });
+                        const updatedData = {
+                            student_names: [...existingData.student_names, ...newUniqueNames],
+
+                            role: placedInfo.role || existingData.role,
+                            ctc: placedInfo.ctc || existingData.ctc,
+                            stipend: placedInfo.stipend || existingData.stipend,
+                        };
+                        await doc.ref.update(updatedData);
                         bot.sendMessage(
                             chatId,
                             `✅ Updated entry for ${placedInfo.company}, adding ${newUniqueNames.length} new student(s).`,
