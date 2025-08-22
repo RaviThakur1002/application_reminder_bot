@@ -1,4 +1,3 @@
-import express from "express";
 import TelegramBot from "node-telegram-bot-api";
 import { TELEGRAM_TOKEN, TIMEZONE } from "./config.js";
 import { db } from "./firebase.js";
@@ -7,23 +6,7 @@ import { initializeMessageHandler } from "./telegram/messageHandler.js";
 import { initializeCronJob } from "./cron/reminderJob.js";
 
 export default function runBot() {
-    const app = express();
-    app.use(express.json());
-
-    const bot = new TelegramBot(TELEGRAM_TOKEN);
-
-    const webhookPath = `/webhook/${TELEGRAM_TOKEN}`;
-    const webhookUrl = `https://application-reminder-bot.onrender.com${webhookPath}`;
-    bot.setWebHook(webhookUrl);
-
-    app.post(webhookPath, (req, res) => {
-        bot.processUpdate(req.body);
-        res.sendStatus(200);
-    });
-
-    app.get("/", (req, res) => {
-        res.send("alive");
-    });
+    const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
     const awaitingJobInfo = new Map();
     const awaitingPlacedInfo = new Map();
@@ -48,9 +31,11 @@ export default function runBot() {
     initializeMessageHandler(bot, db, awaitingJobInfo, awaitingPlacedInfo);
     initializeCronJob(bot, db);
 
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-        console.log(`🤖 Bot running in ${TIMEZONE} timezone on port ${PORT}`);
-        console.log(`🌐 Webhook set to ${webhookUrl}`);
+    bot.on("polling_error", (error) => {
+        console.error(`[POLLING ERROR] ${error.code}: ${error.message}.`);
     });
+
+    console.log(
+        `🤖 Bot is running with new command names in the ${TIMEZONE} timezone.`,
+    );
 }
